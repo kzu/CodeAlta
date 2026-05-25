@@ -1,9 +1,6 @@
 # ACP integration
 
-CodeAlta supports ACP backends through stdio JSON-RPC. The implementation is split between protocol/runtime support in `CodeAlta.Acp`, backend adaptation in `CodeAlta.Agent.Acp`, catalog/config metadata in `CodeAlta.Catalog`, and unexposed management services under `src/CodeAlta/App`.
-
-> [!NOTE]
-> ACP protocol and backend support exists, but the frontend integration is intentionally hidden for now. The TUI does not register ACP backends, command-palette entries, slash commands, shortcuts, or management-dialog entry points because ACP has not yet been exercised and validated in the frontend.
+CodeAlta supports ACP backends through stdio JSON-RPC. The implementation is split between protocol/runtime support in `CodeAlta.Acp`, backend adaptation in `CodeAlta.Agent.Acp`, catalog/config metadata in `CodeAlta.Catalog`, and frontend management services under `src/CodeAlta/App`.
 
 ## Components
 
@@ -12,10 +9,10 @@ CodeAlta supports ACP backends through stdio JSON-RPC. The implementation is spl
 | `src/CodeAlta.Acp` | JSON-RPC transport, ACP protocol models, generated helpers, registry client, install resolver, and installer. |
 | `src/CodeAlta.Agent.Acp` | `IAgentBackend`/`IAgentSession` adapter over an ACP client process. |
 | `src/CodeAlta.Catalog/AcpBackendDefinition.cs` | Config/install definition shape for ACP agent backends. |
-| `CodeAltaOwnedServices` | Contains ACP backend option helpers, but the active frontend startup path does not register ACP backends while ACP UI integration is hidden. |
+| `CodeAltaOwnedServices` | Registers effective ACP backends at startup and exposes `RefreshAcpBackendsAsync` for runtime refresh. |
 | `AcpAgentRegistryService` and `AcpManagementService` | Registry refresh/cache, install/remove, and management snapshot data. |
 
-ACP backends are not exposed through the frontend today. They remain documented here for the protocol/backend implementation and configuration shape.
+ACP backends register at startup from installed definitions and `[acp.agents]` config. The TUI exposes the **ACP Agents** command (`/acp`, `/acp_agents`) for registry browsing, install/remove, and backend refresh.
 
 ## Configuration
 

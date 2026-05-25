@@ -113,13 +113,11 @@ internal static class DialogCommandHandlers
             showOpenFolderDialog(command.InitialPath);
             return ValueTask.CompletedTask;
         });
-        // ACP frontend command registration is intentionally disabled until the
-        // TUI integration is exercised and validated.
-        // registry.Register<OpenAcpManagementCommand>((_, _) =>
-        // {
-        //     dialogCommandService.OpenAcpManagement();
-        //     return ValueTask.CompletedTask;
-        // });
+        registry.Register<OpenAcpManagementCommand>((_, _) =>
+        {
+            dialogCommandService.OpenAcpManagement();
+            return ValueTask.CompletedTask;
+        });
         registry.Register<OpenAboutCommand>((_, _) =>
         {
             dialogCommandService.OpenAbout();

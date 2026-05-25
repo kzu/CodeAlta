@@ -102,16 +102,16 @@ public sealed class ShellCommandHelpTests
     }
 
     [TestMethod]
-    public void BuildSections_DoesNotExposeAcpManagementCommand()
+    public void BuildSections_ExposesAcpManagementCommand()
     {
-        Assert.IsFalse(ShellCommandCatalog.Contains("CodeAlta.Acp.Manage"));
+        Assert.IsTrue(ShellCommandCatalog.Contains("CodeAlta.Acp.Manage"));
 
         var entries = ShellHelpContentBuilder.BuildSections()
             .SelectMany(static section => section.Entries)
             .ToArray();
 
-        Assert.IsFalse(entries.Any(static entry => string.Equals(entry.Label, "ACP Agents", StringComparison.Ordinal)));
-        Assert.IsFalse(entries.SelectMany(static entry => entry.Bindings).Any(static binding => binding.Contains("acp", StringComparison.OrdinalIgnoreCase)));
+        Assert.IsTrue(entries.Any(static entry => string.Equals(entry.Label, "ACP Agents", StringComparison.Ordinal)));
+        Assert.IsTrue(entries.SelectMany(static entry => entry.Bindings).Any(static binding => binding.Contains("acp", StringComparison.OrdinalIgnoreCase)));
     }
 
     [TestMethod]

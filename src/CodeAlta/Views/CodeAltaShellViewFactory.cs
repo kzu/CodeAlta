@@ -133,11 +133,9 @@ internal static class CodeAltaShellViewFactory
         shellView.Root.AddCommand(ShellCommandViewFactory.Create(
             ShellCommandCatalog.Get("CodeAlta.Workspace.Settings"),
             () => _ = shellCommandSurfaceCoordinator.OpenWorkspaceSettingsAsync()));
-        // ACP frontend command registration is intentionally disabled until the
-        // TUI integration is exercised and validated.
-        // shellView.Root.AddCommand(ShellCommandViewFactory.Create(
-        //     ShellCommandCatalog.Get("CodeAlta.Acp.Manage"),
-        //     openAcpManager));
+        shellView.Root.AddCommand(ShellCommandViewFactory.Create(
+            ShellCommandCatalog.Get("CodeAlta.Acp.Manage"),
+            openAcpManager));
         shellView.Root.AddCommand(ShellCommandViewFactory.Create(
             ShellCommandCatalog.Get("CodeAlta.Shell.FocusSidebar"),
             () => _ = shellCommandSurfaceCoordinator.FocusSidebarAsync()));

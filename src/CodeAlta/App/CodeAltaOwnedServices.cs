@@ -166,19 +166,16 @@ internal sealed class CodeAltaOwnedServices : IAsyncDisposable
                     homeRoot,
                     modelsDevCatalogService));
 
-            // ACP support remains implemented at the protocol/backend layer, but the
-            // interactive frontend does not register ACP backends while the UI path
-            // is hidden and unvalidated.
-            // foreach (var definition in configStore.LoadEffectiveAcpBackendDefinitions(installedBackendStore.Load()))
-            // {
-            //     if (TryCreateAcpBackendOptions(catalogOptions, definition, out var acpOptions))
-            //     {
-            //         backendFactory.RegisterAcp(acpOptions);
-            //         backendDescriptors.Add(new AgentBackendDescriptor(
-            //             AcpAgentBackendFactoryExtensions.CreateBackendId(acpOptions.AgentId),
-            //             acpOptions.DisplayName));
-            //     }
-            // }
+            foreach (var definition in configStore.LoadEffectiveAcpBackendDefinitions(installedBackendStore.Load()))
+            {
+                if (TryCreateAcpBackendOptions(catalogOptions, definition, out var acpOptions))
+                {
+                    backendFactory.RegisterAcp(acpOptions);
+                    backendDescriptors.Add(new AgentBackendDescriptor(
+                        AcpAgentBackendFactoryExtensions.CreateBackendId(acpOptions.AgentId),
+                        acpOptions.DisplayName));
+                }
+            }
         }
     }
 
