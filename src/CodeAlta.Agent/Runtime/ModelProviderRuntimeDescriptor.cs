@@ -98,6 +98,11 @@ public enum AgentTransportKind
     /// An agent driven over the Agent Client Protocol (ACP), which runs its own loop and tools.
     /// </summary>
     AgentClientProtocol,
+
+    /// <summary>
+    /// The Cursor agent CLI, driven over ACP on stdio.
+    /// </summary>
+    CursorAgentCli,
 }
 
 /// <summary>

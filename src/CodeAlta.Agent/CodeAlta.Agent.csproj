@@ -11,6 +11,7 @@
     <InternalsVisibleTo Include="CodeAlta.Agent.Anthropic" />
     <InternalsVisibleTo Include="CodeAlta.Agent.Claude" />
     <InternalsVisibleTo Include="CodeAlta.Agent.Copilot" />
+    <InternalsVisibleTo Include="CodeAlta.Agent.Cursor" />
     <InternalsVisibleTo Include="CodeAlta.Agent.GoogleGenAI" />
     <InternalsVisibleTo Include="CodeAlta.Agent.Mistral" />
     <InternalsVisibleTo Include="CodeAlta.Agent.OpenAI" />
@@ -21,6 +22,7 @@
     <!-- The sandbox worker: the shell of the tools and the serialization of tool calls and permission requests. -->
     <InternalsVisibleTo Include="CodeAlta.Sandbox" />
     <InternalsVisibleTo Include="CodeAlta.Tests" />
+    <InternalsVisibleTo Include="CodeAlta.Hosting.Tests" />
     <!-- CodeAlta Desktop: StagedFileReplacement for the files it saves while others read them. -->
     <InternalsVisibleTo Include="alta" />
   </ItemGroup>

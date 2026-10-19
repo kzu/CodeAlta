@@ -22,6 +22,12 @@ internal static class AgentModelIdentity
             return exact;
         }
 
+        // A Cursor session can still name the id of one effort (grok-4.7-high). That is the grouped model.
+        if (AgentReasoningEffortCapability.TryMatchEffortSlug(models, normalizedModelId, out var aliased, out _))
+        {
+            return aliased;
+        }
+
         var lookupKeys = GetLookupKeySet(normalizedModelId);
         if (lookupKeys.Count == 0)
         {
