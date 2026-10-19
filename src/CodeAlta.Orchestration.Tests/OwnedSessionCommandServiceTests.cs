@@ -2,6 +2,7 @@ using System.Collections.Frozen;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using CodeAlta.Agent;
+using CodeAlta.Agent.ModelCatalog;
 using CodeAlta.Agent.Runtime;
 using CodeAlta.Catalog;
 using CodeAlta.Catalog.Skills;
@@ -228,6 +229,46 @@ public sealed class OwnedSessionCommandServiceTests
         Assert.AreEqual(AgentReasoningEffort.Medium, choices.Current.ReasoningEffort);
         Assert.IsFalse(choices.Models.Any(model => model.Id == "retired-model"));
         Assert.IsFalse(OwnedSessionCommandService.IsValidSelection(choices, choices.Current));
+    });
+
+    [TestMethod]
+    public Task SessionSavedAsAnEffortVariant_ShowsTheModelAndThatEffort() => Fixture.RunAsync(async f =>
+    {
+        f.Provider.ExposeSelectionModels = true;
+        f.Provider.AdditionalModels.Add(new AgentModelInfo(
+            "grok-4.7",
+            "Grok 4.7",
+            DefaultReasoningEffort: AgentReasoningEffort.High,
+            SupportedReasoningEfforts: [AgentReasoningEffort.Low, AgentReasoningEffort.Medium, AgentReasoningEffort.High, AgentReasoningEffort.XHigh],
+            Capabilities: new Dictionary<string, object?>
+            {
+                [AgentReasoningEffortCapability.CompleteListKey] = true,
+                [AgentReasoningEffortCapability.EffortSlugMapKey] = new Dictionary<string, string>
+                {
+                    ["Low"] = "grok-4.7-low",
+                    ["High"] = "grok-4.7-high",
+                },
+            }));
+        var project = await f.Observe(f.Host.ProjectCatalog.GetByPathAsync(f.ProjectRoot));
+        var created = await f.Observe(f.Host.Commands.CreateDraftSessionAsync(project,
+            f.Provider.Descriptor with { DefaultModelId = "grok-4.7-high" }, "Variant"));
+        Assert.AreEqual("grok-4.7-high", created.ModelId, "The session keeps the id it was given.");
+
+        var choices = await f.Observe(f.Host.Commands.GetSelectionChoicesAsync(created.SessionId));
+        Assert.IsNotNull(choices);
+        Assert.AreEqual("grok-4.7", choices.Current.ModelId);
+        Assert.AreEqual(AgentReasoningEffort.High, choices.Current.ReasoningEffort);
+        Assert.IsTrue(OwnedSessionCommandService.IsValidSelection(choices, choices.Current));
+        Assert.AreEqual("grok-4.7", AgentModelIdentity.FindBestMatch(
+            [.. f.Provider.AdditionalModels], "grok-4.7-high")!.Id);
+
+        // An effort the session already holds wins over the effort written into the variant id.
+        var kept = await f.Observe(f.Host.Commands.CreateDraftSessionAsync(project,
+            f.Provider.Descriptor with { DefaultModelId = "grok-4.7-high", DefaultReasoningEffort = AgentReasoningEffort.Low }, "Kept"));
+        var keptChoices = await f.Observe(f.Host.Commands.GetSelectionChoicesAsync(kept.SessionId));
+        Assert.IsNotNull(keptChoices);
+        Assert.AreEqual("grok-4.7", keptChoices.Current.ModelId);
+        Assert.AreEqual(AgentReasoningEffort.Low, keptChoices.Current.ReasoningEffort);
     });
 
     [TestMethod]
@@ -2706,6 +2747,7 @@ public sealed class OwnedSessionCommandServiceTests
         public Task StartAsync(CancellationToken cancellationToken = default) { Interlocked.Increment(ref _runtimeStarts); return Task.CompletedTask; }
         public Task StopAsync(CancellationToken cancellationToken = default) { Interlocked.Increment(ref _runtimeStops); return Task.CompletedTask; }
         internal bool ExposeSelectionModels { get; set; }
+        internal List<AgentModelInfo> AdditionalModels { get; } = [];
         // More models listed after the fixture ones, as a provider with a large inventory (Azure OpenAI) reports.
         internal int ExtraSelectionModels { get; set; }
         internal Task? ProbeDependency { get; set; }
@@ -2720,6 +2762,7 @@ public sealed class OwnedSessionCommandServiceTests
                     new("image-model", Capabilities: new Dictionary<string, object?> { ["supportsImageInput"] = true }),
                     new("text-model", Capabilities: new Dictionary<string, object?> { ["supportsImageInput"] = false,
                         [AgentReasoningEffortCapability.CompleteListKey] = true }),
+                    .. AdditionalModels,
                     .. Enumerable.Range(0, ExtraSelectionModels).Select(static index => new AgentModelInfo($"listed-{index:D3}"))] };
         }
         public IModelProviderTurnExecutor CreateTurnExecutor() => throw new InvalidOperationException("Unexpected turn-executor route.");
