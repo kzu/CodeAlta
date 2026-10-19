@@ -173,15 +173,29 @@ public sealed partial class OwnedSessionCommandService
     }
 
     // Completes what a session runs with among what its provider reports, as the terminal does. A session without a
-    // model takes the provider's configured model when it is listed, else the first one listed. A model that reports
-    // its efforts takes the session's effort when it supports it, else the provider's configured effort, High, its own
-    // default or its first effort. A model the provider does not list is kept as it is saved.
+    // model takes the provider's configured model when it is listed, else the first one listed. An id that is one
+    // effort of a listed model (the Cursor CLI's grok-4.7-high) is that model at that effort, so the composer can
+    // change the two separately. A model that reports its efforts takes the session's effort when it supports it,
+    // else the provider's configured effort, High, its own default or its first effort. A model the provider does
+    // not list is kept as it is saved.
     private (string? ModelId, AgentReasoningEffort? Effort) StartingModel(string provider, string? modelId,
         AgentReasoningEffort? effort, IReadOnlyList<AgentModelInfo> models)
     {
         var configured = SelectionProvider?.Invoke(new ModelProviderId(provider));
-        var resolved = string.IsNullOrWhiteSpace(modelId) ? AgentModelDefaults.ResolveModelId(models, configured?.DefaultModelId) : modelId;
-        var model = models.FirstOrDefault(m => string.Equals(m.Id, resolved, StringComparison.Ordinal));
+        var requested = string.IsNullOrWhiteSpace(modelId) ? configured?.DefaultModelId : modelId;
+        var model = string.IsNullOrWhiteSpace(requested) ? null
+            : models.FirstOrDefault(m => string.Equals(m.Id, requested, StringComparison.Ordinal));
+        if (model is null && !string.IsNullOrWhiteSpace(requested)
+            && AgentReasoningEffortCapability.TryMatchEffortSlug(models, requested, out var aliased, out var slugEffort))
+        {
+            model = aliased;
+            effort ??= slugEffort;
+        }
+
+        var resolved = model?.Id ?? (string.IsNullOrWhiteSpace(modelId)
+            ? AgentModelDefaults.ResolveModelId(models, configured?.DefaultModelId) : modelId);
+        model ??= string.IsNullOrWhiteSpace(resolved) ? null
+            : models.FirstOrDefault(m => string.Equals(m.Id, resolved, StringComparison.Ordinal));
         if (model?.SupportedReasoningEfforts is not { Count: > 0 } supported) return (resolved, effort);
         return (resolved, AgentModelDefaults.ResolveReasoningEffort(model,
             effort is { } saved && supported.Contains(saved) ? saved : configured?.DefaultReasoningEffort));
