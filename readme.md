@@ -23,7 +23,7 @@ CodeAlta TUI shares your profile, providers and sessions. Install both and conti
 dotnet tool install -g CodeAlta.Tui
 altatui
 ```
-
+<!-- #content -->
 Launch the app from a project folder. On first launch it opens the provider setup: sign in with a Claude, ChatGPT or GitHub Copilot subscription, or add an API key.
 
 See [Getting Started](https://codealta.github.io/docs/getting-started/) for requirements and the first steps.
