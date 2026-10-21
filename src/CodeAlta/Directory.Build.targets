@@ -1,0 +1,24 @@
+<Project>
+  <PropertyGroup>
+    <!-- GitHub release tags look like v1.2.3. MinVerVersionOverride is that SemVer without the prefix
+         (MinVer's tag prefix applies to git tags, not to the override). A global PackageVersion is the
+         restore project version, and RestoreTask rejects the leading v. -->
+    <MinVerVersionOverride Condition="$(MinVerVersionOverride.StartsWith('v')) or $(MinVerVersionOverride.StartsWith('V'))">$(MinVerVersionOverride.Substring(1))</MinVerVersionOverride>
+    <PackageId>xsi</PackageId>
+    <ToolPackageRuntimeIdentifiers>win-x64;win-arm64;osx-x64;osx-arm64;linux-x64;linux-arm64</ToolPackageRuntimeIdentifiers>
+    <ToolCommandName>xsi</ToolCommandName>
+    <PackageOutputPath>..\..\bin</PackageOutputPath>
+    <PackageReadmeFile>xsi.md</PackageReadmeFile>
+    <PackageIcon>cursor.png</PackageIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)../../img/cursor.png" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+  <Target Name="RemoveReadme" BeforeTargets="ProcessPackageReadme">
+    <ItemGroup>
+      <None Remove="@(None)" Condition="%(Filename) == 'README'" />
+    </ItemGroup>
+  </Target>
+</Project>
