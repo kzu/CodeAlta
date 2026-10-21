@@ -1,14 +1,8 @@
 name: ci
 
 on:
-  push:
-    paths-ignore:
-    - 'doc/**'
-    - 'site/**'
-    - 'img/**'
-    - '*.md'
-    - '*.txt'
-  pull_request:
+  release:
+    types: [prereleased, released]
 
 jobs:
   build:
@@ -16,7 +10,65 @@ jobs:
       id-token: write
       actions: write
       contents: write
-    runs-on: 'ubuntu-latest'
+    runs-on: 'windows-latest'
     steps:
-      - name: "Build, Test, Pack and Publish"
-        uses: xoofx/.github/.github/actions/dotnet-releaser-action@main
+      - name: 🤘 checkout
+        uses: actions/checkout@v4
+
+      - name: 🙏 build
+        # Framework-dependent, so one pack emits the pointer package and one package per RID.
+        run: dotnet pack .\src\CodeAlta\CodeAlta.csproj -p:MinVerVersionOverride=${{ github.event.release.tag_name }}
+
+      - name: 🔑 nuget login
+        if: ${{ github.event.action != 'prereleased' }}
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: kzu
+
+      - name: 🚀 nuget
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        if: ${{ env.NUGET_API_KEY != '' && github.event.action != 'prereleased' }}
+        working-directory: bin
+        shell: pwsh
+        run: |
+          $packages = @(Get-ChildItem -Filter *.nupkg | Where-Object Name -NotLike '*.symbols.nupkg' | Sort-Object Name)
+          $runtimePackagePattern = '^sxsi\.(win-x64|linux-x64|osx-arm64)\..+\.nupkg$'
+          $runtimePackages = @($packages | Where-Object Name -Match $runtimePackagePattern)
+          $pointerPackages = @($packages | Where-Object Name -NotMatch $runtimePackagePattern)
+
+          if ($runtimePackages.Count -eq 0) { throw 'No RID-specific packages found.' }
+          if ($pointerPackages.Count -eq 0) { throw 'No top-level pointer package found.' }
+
+          foreach ($package in $runtimePackages) {
+            dotnet nuget push $package.FullName -s https://api.nuget.org/v3/index.json -k $env:NUGET_API_KEY --skip-duplicate
+          }
+
+          foreach ($package in $pointerPackages) {
+            dotnet nuget push $package.FullName -s https://api.nuget.org/v3/index.json -k $env:NUGET_API_KEY --skip-duplicate
+          }
+
+      - name: 🚀 sleet
+        env:
+          SLEET_CONNECTION: ${{ secrets.SLEET_CONNECTION }}
+        if: env.SLEET_CONNECTION != ''
+        shell: pwsh
+        run: |
+          dotnet tool update sleet -g --allow-downgrade --version $(curl -s --compressed ${{ vars.SLEET_FEED_URL }} | jq '.["sleet:version"]' -r)
+          $packages = @(Get-ChildItem bin -Filter *.nupkg | Where-Object Name -NotLike '*.symbols.nupkg' | Sort-Object Name)
+          $runtimePackagePattern = '^sxsi\.(win-x64|linux-x64|osx-arm64)\..+\.nupkg$'
+          $runtimePackages = @($packages | Where-Object Name -Match $runtimePackagePattern)
+          $pointerPackages = @($packages | Where-Object Name -NotMatch $runtimePackagePattern)
+
+          if ($runtimePackages.Count -eq 0) { throw 'No RID-specific packages found.' }
+          if ($pointerPackages.Count -eq 0) { throw 'No top-level pointer package found.' }
+
+          $runtimePath = Join-Path $env:RUNNER_TEMP runtime-packages
+          $pointerPath = Join-Path $env:RUNNER_TEMP pointer-package
+          New-Item -ItemType Directory -Force -Path $runtimePath, $pointerPath | Out-Null
+          Copy-Item -Path $runtimePackages.FullName -Destination $runtimePath
+          Copy-Item -Path $pointerPackages.FullName -Destination $pointerPath
+
+          sleet push $runtimePath --config none -f --verbose -p "SLEET_FEED_CONTAINER=nuget" -p "SLEET_FEED_CONNECTIONSTRING=$env:SLEET_CONNECTION" -p "SLEET_FEED_TYPE=azure"
+          sleet push $pointerPath --config none -f --verbose -p "SLEET_FEED_CONTAINER=nuget" -p "SLEET_FEED_CONNECTIONSTRING=$env:SLEET_CONNECTION" -p "SLEET_FEED_TYPE=azure"

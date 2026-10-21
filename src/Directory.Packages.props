@@ -30,6 +30,7 @@
     <!-- The sandbox of sessions. 1.0.1 may fall back to changing folder permissions where the native container is
          missing: CodeAlta.Sandbox refuses any request its probe does not serve natively. -->
     <PackageVersion Include="Microsoft.Mxc.Sdk" Version="1.0.1" />
+    <PackageVersion Include="Readme" Version="1.2.2" />
     <PackageVersion Include="SharpYaml" Version="3.16.0" />
     <PackageVersion Include="SkiaSharp" Version="3.119.4" />
     <PackageVersion Include="SkiaSharp.NativeAssets.Linux" Version="3.119.4" />
