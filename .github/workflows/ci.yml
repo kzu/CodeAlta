@@ -19,9 +19,16 @@ jobs:
         # Framework-dependent, so one pack emits the pointer package and one package per RID.
         run: dotnet pack .\src\CodeAlta\CodeAlta.csproj -p:MinVerVersionOverride=${{ github.event.release.tag_name }}
 
+      - name: 🔑 nuget login
+        if: ${{ github.event.action != 'prereleased' }}
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: kzu
+
       - name: 🚀 nuget
         env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
         if: ${{ env.NUGET_API_KEY != '' && github.event.action != 'prereleased' }}
         working-directory: bin
         shell: pwsh
