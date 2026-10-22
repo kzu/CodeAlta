@@ -12,6 +12,8 @@ provider and come back (see [runtime](runtime.md)).
 | `src/CodeAlta.Agent.Anthropic`, `.GoogleGenAI`, `.Mistral` | `anthropic`; `google-genai` and `vertex-ai`; `mistral` |
 | `src/CodeAlta.Agent.Copilot`, `.Xai` | `copilot` and `xai`: direct HTTP with their own sign-in, dispatched to the executors above |
 | `src/CodeAlta.Agent.Claude` | `claude-code`: the Claude Code CLI as a child process |
+| `src/CodeAlta.Agent.Cursor` | `cursor`: the Cursor agent CLI. See [spacexsi.md](spacexsi.md). |
+| `src/CodeAlta.Agent.Grok` | `grok-build`: the grok CLI. See [spacexsi.md](spacexsi.md). |
 | `src/CodeAlta.Acp`, `src/CodeAlta.Plugin.Acp` | The ACP protocol and client; the built-in plugin that adds the type `acp` |
 | `src/CodeAlta.Hosting` | Composition: `ConfiguredModelProviderRegistryBuilder`, sign-in and inspection workflows (`Configured*`), `PluginModelProviderTypes`, bundled `ProviderDefaults/provider_defaults.toml` |
 | `src/CodeAlta.Catalog` | The `[providers.*]` configuration (`CodeAltaConfigStore`) |

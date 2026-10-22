@@ -2,6 +2,7 @@ using CodeAlta.Agent;
 using CodeAlta.Agent.Anthropic;
 using CodeAlta.Agent.Claude;
 using CodeAlta.Agent.Cursor;
+using CodeAlta.Agent.Grok;
 using CodeAlta.Agent.Copilot;
 using CodeAlta.Agent.Xai;
 using CodeAlta.Agent.GoogleGenAI;
@@ -275,6 +276,8 @@ public static class ConfiguredModelProviderRegistryBuilder
                 return TryCreateClaudeCodeProvider(definition, stateRootPath, modelCatalog, externalConversationHeaders, providerProcesses, out descriptor, out createRuntime);
             case CursorModelProviderRuntime.ProviderType:
                 return TryCreateCursorProvider(definition, stateRootPath, out descriptor, out createRuntime);
+            case GrokModelProviderRuntime.ProviderType:
+                return TryCreateGrokProvider(definition, stateRootPath, out descriptor, out createRuntime);
             default:
                 descriptor = null!;
                 createRuntime = null!;
@@ -797,6 +800,32 @@ public static class ConfiguredModelProviderRegistryBuilder
         createRuntime = () => new CursorModelProviderRuntime(options);
         LogInfo(
             $"Registered model provider key={definition.ProviderKey} type={definition.ProviderType} displayName={options.DisplayName} command={options.Command ?? "agent"}");
+        return true;
+    }
+
+    // The Grok Build subscription lives in the grok CLI. CodeAlta stores no API key and does not start the CLI here.
+    private static bool TryCreateGrokProvider(
+        CodeAltaProviderDocument definition,
+        string stateRootPath,
+        out ModelProviderDescriptor descriptor,
+        out Func<IModelProviderRuntime> createRuntime)
+    {
+        var options = new GrokModelProviderRuntimeOptions
+        {
+            ProviderKey = definition.ProviderKey,
+            DisplayName = ResolveProviderDisplayName(definition),
+            Command = NormalizeText(definition.Command),
+            Arguments = definition.Arguments is { Count: > 0 } arguments ? arguments : [],
+            StateRootPath = stateRootPath,
+            DefaultModelId = NormalizeText(definition.Model),
+            IsDefault = true,
+            IsEnabled = definition.Enabled != false,
+        };
+
+        descriptor = GrokModelProviderRuntime.CreateDescriptor(options);
+        createRuntime = () => new GrokModelProviderRuntime(options);
+        LogInfo(
+            $"Registered model provider key={definition.ProviderKey} type={definition.ProviderType} displayName={options.DisplayName} command={options.Command ?? "grok"}");
         return true;
     }
 

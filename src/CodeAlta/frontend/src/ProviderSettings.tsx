@@ -411,7 +411,7 @@ export function ProviderSettings({ epoch, config = globalConfig, plugins = globa
                 <option value="">{t("The setting of the CLI")}</option>
                 {[...new Set([...(form.permissionMode ? [form.permissionMode] : []), ...listing.permissionModes])].map(mode => <option key={mode} value={mode}>{mode}</option>)}
               </HTMLSelect></FormGroup>}
-            {!runsOwnCli(form.type) && !formPlugin && form.type !== "cursor" && <FormGroup label={t("API URL")} labelFor="provider-url">
+            {!runsOwnCli(form.type) && !formPlugin && form.type !== "cursor" && form.type !== "grok-build" && <FormGroup label={t("API URL")} labelFor="provider-url">
               <DefaultedInput id="provider-url" value={form.apiUrl} fallback={fallback("apiUrl") ?? original?.effectiveApiUrl ?? null} disabled={busy} onChange={apiUrl => edit({ apiUrl })} /></FormGroup>}
             {/* A signed-out account says how to sign in, beside the box whose command does it. */}
             {signedOut && !notice && runsOwnCli(form.type) && <Callout intent="warning" compact className="provider-settings-wide provider-signed-out" icon={<AppIcon name="user" size={16} />}>

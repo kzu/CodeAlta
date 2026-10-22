@@ -46,10 +46,14 @@ test("the wire edit sends blank fields as null and keeps an untouched secret", (
   assert.equal(cleared.clearApiKey, true);
   assert.equal(usesAccountSignIn("codex"), true);
   assert.equal(usesAccountSignIn("cursor"), true);
+  assert.equal(usesAccountSignIn("grok-build"), true);
   assert.equal(usesAccountSignIn("openai-chat"), false);
   assert.equal(providerEdit({ ...form, type: "cursor", apiUrl: "https://example.test", apiKey: "secret", apiKeyEnv: "CURSOR_API_KEY" }).apiUrl, null);
   assert.equal(providerEdit({ ...form, type: "cursor", apiKey: "secret" }).apiKey, null);
   assert.equal(providerEdit({ ...form, type: "cursor", apiKey: "secret" }).clearApiKey, true);
+  assert.equal(providerEdit({ ...form, type: "grok-build", apiUrl: "https://example.test", apiKey: "secret", apiKeyEnv: "XAI_API_KEY" }).apiUrl, null);
+  assert.equal(providerEdit({ ...form, type: "grok-build", apiKey: "secret" }).apiKey, null);
+  assert.equal(providerEdit({ ...form, type: "grok-build", apiKey: "secret" }).clearApiKey, true);
 });
 
 test("the icon and its color are written as chosen, and left out when they follow the provider", () => {
