@@ -37,6 +37,7 @@ internal sealed class ModelProvidersDialog
         new("mistral", "Mistral"),
         new("claude-code", "Claude Code"),
         new("cursor", "Cursor"),
+        new("grok-build", "Grok Build"),
     ];
 
     private static readonly ReasoningOption[] ReasoningOptions =
