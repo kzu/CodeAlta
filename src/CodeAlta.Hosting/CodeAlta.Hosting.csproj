@@ -24,6 +24,7 @@
     <ProjectReference Include="..\CodeAlta.Agent.OpenAI\CodeAlta.Agent.OpenAI.csproj" />
     <ProjectReference Include="..\CodeAlta.Agent.Xai\CodeAlta.Agent.Xai.csproj" />
     <ProjectReference Include="..\CodeAlta.Agent.Cursor\CodeAlta.Agent.Cursor.csproj" />
+    <ProjectReference Include="..\CodeAlta.Agent.Grok\CodeAlta.Agent.Grok.csproj" />
   </ItemGroup>
 
   <ItemGroup>

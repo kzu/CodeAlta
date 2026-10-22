@@ -98,6 +98,11 @@ public enum AgentTransportKind
     /// The Cursor agent CLI, driven over ACP on stdio.
     /// </summary>
     CursorAgentCli,
+
+    /// <summary>
+    /// The Grok Build CLI, driven over ACP on stdio (<c>grok agent stdio</c>).
+    /// </summary>
+    GrokBuildCli,
 }
 
 /// <summary>

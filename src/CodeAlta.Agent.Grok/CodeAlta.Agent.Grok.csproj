@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsAotCompatible>true</IsAotCompatible>
+    <RootNamespace>CodeAlta.Agent.Grok</RootNamespace>
+    <Description>Grok Build CLI provider runtime for CodeAlta.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CodeAlta.Agent\CodeAlta.Agent.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="CodeAlta.Hosting.Tests" />
+    <InternalsVisibleTo Include="CodeAlta.Tests" />
+  </ItemGroup>
+
+</Project>
