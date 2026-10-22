@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Runtime.ExceptionServices;
 using CodeAlta.Agent.Copilot;
 using CodeAlta.Agent.Cursor;
+using CodeAlta.Agent.Grok;
 using CodeAlta.Agent.OpenAI.Codex;
 using CodeAlta.Agent.Xai;
 using CodeAlta.Catalog;
@@ -31,8 +32,8 @@ public sealed record ProviderLoginStatus(bool SignedIn, string? Account, string?
 }
 
 /// <summary>
-/// Account sign-in, sign-out and stored sign-in state of a configured Codex, Copilot, xAI or Cursor provider behind
-/// provider-neutral types, so a frontend does not name the provider packages.
+/// Account sign-in, sign-out and stored sign-in state of a configured Codex, Copilot, xAI, Cursor or Grok Build
+/// provider behind provider-neutral types, so a frontend does not name the provider packages.
 /// </summary>
 /// <remarks>
 /// The caller owns root selection, presentation and any browser launch: no browser is opened here. Provider
@@ -53,8 +54,8 @@ public static class ConfiguredProviderLogin
 
     /// <summary>Returns whether a provider type signs in with an account instead of an API key.</summary>
     /// <param name="providerType">The canonical provider type.</param>
-    /// <returns>True for <c>codex</c>, <c>copilot</c>, <c>xai</c> and <c>cursor</c>.</returns>
-    public static bool SupportsLogin(string? providerType) => providerType is "codex" or "copilot" or "xai" or "cursor";
+    /// <returns>True for <c>codex</c>, <c>copilot</c>, <c>xai</c>, <c>cursor</c> and <c>grok-build</c>.</returns>
+    public static bool SupportsLogin(string? providerType) => providerType is "codex" or "copilot" or "xai" or "cursor" or "grok-build";
 
     /// <summary>Returns the sign-in modes of a provider type, preferred mode first.</summary>
     /// <param name="providerType">The canonical provider type.</param>
@@ -63,7 +64,7 @@ public static class ConfiguredProviderLogin
     {
         "codex" => CodexModes,
         "copilot" => CopilotModes,
-        "xai" or "cursor" => XaiModes,
+        "xai" or "cursor" or "grok-build" => XaiModes,
         _ => [],
     };
 
@@ -115,6 +116,12 @@ public static class ConfiguredProviderLogin
                     (uri, code, token) => onPrompt(new(uri, code, null), token), cancellationToken).ConfigureAwait(false);
                 CursorSignInView.Accept(stateRootPath, definition.ProviderKey);
                 return new ProviderLoginStatus(true, null, "Cursor", null);
+            case ("grok-build", Browser):
+            case ("grok-build", Device):
+                await GrokAgentLogin.LoginAsync(GrokCliLaunch.From(definition.Command, definition.Arguments, null), mode == Device,
+                    (uri, code, token) => onPrompt(new(uri, code, null), token), cancellationToken).ConfigureAwait(false);
+                GrokSignInView.Accept(stateRootPath, definition.ProviderKey);
+                return new ProviderLoginStatus(true, null, "Grok Build", null);
             default:
                 throw SupportsLogin(definition.ProviderType)
                     ? new ArgumentException($"Sign-in mode '{mode}' is not supported by provider type '{definition.ProviderType}'.", nameof(mode))
@@ -149,6 +156,7 @@ public static class ConfiguredProviderLogin
             "xai" => await ConfiguredXaiAuthentication.GetCredentialStatusAsync(definition, Root, InvalidProvider, cancellationToken)
                 .ConfigureAwait(false) is { } xai ? FromXai(xai) : SignedOut,
             "cursor" => await CursorStatusAsync(definition, stateRootPath, cancellationToken).ConfigureAwait(false),
+            "grok-build" => await GrokStatusAsync(definition, stateRootPath, cancellationToken).ConfigureAwait(false),
             _ => throw Unsupported(definition),
         };
     }
@@ -181,6 +189,13 @@ public static class ConfiguredProviderLogin
                 if (signedIn)
                 {
                     CursorSignInView.Dismiss(stateRootPath, definition.ProviderKey);
+                }
+
+                break;
+            case "grok-build":
+                if (signedIn)
+                {
+                    GrokSignInView.Dismiss(stateRootPath, definition.ProviderKey);
                 }
 
                 break;
@@ -273,6 +288,18 @@ public static class ConfiguredProviderLogin
         var signedIn = await CursorAgentLogin.IsAuthenticatedAsync(CursorCliLaunch.From(definition.Command, definition.Arguments, null), cancellationToken)
             .ConfigureAwait(false);
         return signedIn ? new ProviderLoginStatus(true, null, "Cursor", null) : SignedOut;
+    }
+
+    private static async Task<ProviderLoginStatus> GrokStatusAsync(CodeAltaProviderDocument definition, string stateRootPath, CancellationToken cancellationToken)
+    {
+        if (GrokSignInView.IsDismissed(stateRootPath, definition.ProviderKey))
+        {
+            return SignedOut;
+        }
+
+        var signedIn = await GrokAgentLogin.IsAuthenticatedAsync(GrokCliLaunch.From(definition.Command, definition.Arguments, null), cancellationToken)
+            .ConfigureAwait(false);
+        return signedIn ? new ProviderLoginStatus(true, null, "Grok Build", null) : SignedOut;
     }
 
     private static ProviderLoginStatus SignedOut => new(false, null, null, null);

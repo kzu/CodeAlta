@@ -55,6 +55,12 @@ display_name = "Gemini"
 type = "google-genai"
 api_key_env = "CODEALTA_GEMINI_API_KEY"
 
+[providers.grok-build]
+enabled = false
+display_name = "Grok Build"
+type = "grok-build"
+model = "grok-4.7"
+
 [providers.kimi-for-coding]
 enabled = false
 display_name = "Kimi for Coding"
