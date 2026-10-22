@@ -103,6 +103,8 @@ skipped. A section without a `type` (other than `codex` and `copilot`, which hav
 | `vertex-ai` | `CodeAlta.Agent.GoogleGenAI` | Uses Vertex project/location settings instead of an API key. |
 | `mistral` | `CodeAlta.Agent.Mistral` | Requires API key. Uses Mistral chat completions with streaming, tool calls, multi-turn replay, and upstream model listing. |
 | `claude-code` | `CodeAlta.Agent.Claude` | Runs the Claude Code CLI (the pinned version, else the user's own) signed in to the account of its `config_dir`. No credential, endpoint or login of CodeAlta; see [Claude Code CLI provider](#claude-code-cli-claude-code-provider). |
+| `cursor` | `CodeAlta.Agent.Cursor` | See [spacexsi.md](spacexsi.md). |
+| `grok-build` | `CodeAlta.Agent.Grok` | See [spacexsi.md](spacexsi.md). |
 
 External ACP CLI adapters are no longer registered as model providers. Legacy `[acp]` config is ignored and preserved only as compatibility data.
 

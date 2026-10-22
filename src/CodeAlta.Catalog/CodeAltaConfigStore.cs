@@ -44,9 +44,11 @@ public sealed class CodeAltaConfigStore
     private const string XaiDirectProviderType = "xai";
     private const string ClaudeCodeProviderType = "claude-code";
     private const string CursorProviderType = "cursor";
+    private const string GrokBuildProviderType = "grok-build";
     private const string AnthropicProviderType = "anthropic";
     private const string ClaudeCodeDefaultDisplayName = "Claude Code";
     private const string CursorDefaultDisplayName = "Cursor";
+    private const string GrokBuildDefaultDisplayName = "Grok Build";
     private static readonly string[] ClaudeCodePermissionModes = ["default", "acceptEdits", "plan", "auto", "dontAsk", "bypassPermissions"];
     private static readonly string[] ClaudeCodeApiKeyChoices = ["use", "ignore"];
     private const string CopilotDirectDefaultDisplayName = "Copilot";
@@ -2041,6 +2043,7 @@ public sealed class CodeAltaConfigStore
             "xai" or "xai-grok" or "grok" or "x-ai" => XaiDirectProviderType,
             "claude-code" or "claude_code" or "claudecode" or "claude-cli" or "claude-code-cli" => ClaudeCodeProviderType,
             "cursor" or "cursor-agent" or "cursor-cli" or "cursor_agent" => CursorProviderType,
+            "grok-build" or "grok_build" or "grok-cli" or "grokbuild" => GrokBuildProviderType,
             _ => null,
         };
 
@@ -2063,13 +2066,14 @@ public sealed class CodeAltaConfigStore
         definition.Enabled ??= GetDefaultProviderEnabled(definition.ProviderKey);
         definition.ProviderType = NormalizeProviderType(definition.ProviderKey, definition.ProviderType)
             ?? throw new InvalidOperationException(
-                $"providers.{definition.ProviderKey} type must be one of: codex, copilot, openai-chat, openai-responses, azure-openai, anthropic, google-genai, vertex-ai, mistral, xai, claude-code, cursor.");
+                $"providers.{definition.ProviderKey} type must be one of: codex, copilot, openai-chat, openai-responses, azure-openai, anthropic, google-genai, vertex-ai, mistral, xai, claude-code, cursor, grok-build.");
         definition.Compaction = NormalizeAndCompleteCompactionSettings(definition.Compaction, DefaultCompaction);
         ApplyCodexSubscriptionDefaults(definition);
         ApplyCopilotDirectDefaults(definition);
         ApplyXaiDirectDefaults(definition);
         ApplyClaudeCodeDefaults(definition);
         ApplyCursorDefaults(definition);
+        ApplyGrokBuildDefaults(definition);
         if (string.Equals(definition.ProviderType, AnthropicProviderType, StringComparison.Ordinal))
         {
             // On is the absence of the setting.
@@ -2176,10 +2180,26 @@ public sealed class CodeAltaConfigStore
         }
     }
 
+    private static void ApplyGrokBuildDefaults(CodeAltaProviderDocument definition)
+    {
+        if (!string.Equals(definition.ProviderType, GrokBuildProviderType, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        definition.DisplayName ??= GrokBuildDefaultDisplayName;
+        definition.Command = NormalizeText(definition.Command);
+        if (definition.Arguments is { Count: 0 })
+        {
+            definition.Arguments = null;
+        }
+    }
+
     private static void ValidateProviderFields(CodeAltaProviderDocument definition)
     {
         var runsCli = string.Equals(definition.ProviderType, ClaudeCodeProviderType, StringComparison.Ordinal)
-            || string.Equals(definition.ProviderType, CursorProviderType, StringComparison.Ordinal);
+            || string.Equals(definition.ProviderType, CursorProviderType, StringComparison.Ordinal)
+            || string.Equals(definition.ProviderType, GrokBuildProviderType, StringComparison.Ordinal);
         if (!runsCli)
         {
             RejectUnsupportedField(definition, "command", definition.Command);
@@ -2385,6 +2405,18 @@ public sealed class CodeAltaConfigStore
                 RejectUnsupportedField(definition, "api_url", definition.ApiUrl);
                 RejectUnsupportedField(definition, "auth_source", definition.AuthSource);
                 if (definition.Arguments is { } cursorArguments && cursorArguments.Exists(static argument => string.IsNullOrWhiteSpace(argument)))
+                {
+                    throw new InvalidOperationException($"providers.{definition.ProviderKey} args must not contain empty values.");
+                }
+
+                break;
+
+            case GrokBuildProviderType:
+                RejectUnsupportedField(definition, "api_key", definition.ApiKey);
+                RejectUnsupportedField(definition, "api_key_env", definition.ApiKeyEnv);
+                RejectUnsupportedField(definition, "api_url", definition.ApiUrl);
+                RejectUnsupportedField(definition, "auth_source", definition.AuthSource);
+                if (definition.Arguments is { } grokArguments && grokArguments.Exists(static argument => string.IsNullOrWhiteSpace(argument)))
                 {
                     throw new InvalidOperationException($"providers.{definition.ProviderKey} args must not contain empty values.");
                 }
