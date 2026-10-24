@@ -282,8 +282,9 @@ public static class GrokAgentLogin
 
     /// <summary>
     /// Reads the agent catalog from an <c>initialize</c> response. Models live at
-    /// <c>result._meta.modelState.availableModels</c>. Each model keeps its <c>modelId</c> and the reasoning
-    /// efforts that entry lists.
+    /// <c>result._meta.modelState.availableModels</c>. Each model keeps its <c>modelId</c>, the reasoning
+    /// efforts that entry lists, and the limits and abilities its <c>_meta</c> reports: <c>totalContextTokens</c>
+    /// is the context window, and <c>acceptsImages</c> and <c>toolCall</c> are image input and tool calling.
     /// </summary>
     /// <param name="initializeResponse">The JSON-RPC <c>initialize</c> response, or its <c>result</c> object.</param>
     /// <returns>The models, in the order the CLI reported them.</returns>
@@ -334,13 +335,7 @@ public static class GrokAgentLogin
                 Provider: GrokModelProviderRuntime.ProviderType,
                 DefaultReasoningEffort: defaultEffort,
                 SupportedReasoningEfforts: efforts,
-                Capabilities: efforts is null
-                    ? null
-                    : new Dictionary<string, object?>(StringComparer.Ordinal)
-                    {
-                        [AgentReasoningEffortCapability.CompleteListKey] = true,
-                        ["supportsReasoning"] = true,
-                    }));
+                Capabilities: ReadCapabilities(model, efforts)));
         }
 
         return models;
@@ -444,6 +439,86 @@ public static class GrokAgentLogin
                 [AgentReasoningEffortCapability.CompleteListKey] = true,
                 ["supportsReasoning"] = true,
             });
+
+    private static Dictionary<string, object?>? ReadCapabilities(JsonElement model, IReadOnlyList<AgentReasoningEffort>? efforts)
+    {
+        var capabilities = new Dictionary<string, object?>(StringComparer.Ordinal);
+        if (efforts is not null)
+        {
+            capabilities[AgentReasoningEffortCapability.CompleteListKey] = true;
+            capabilities["supportsReasoning"] = true;
+        }
+
+        if (model.TryGetProperty("_meta", out var meta) && meta.ValueKind == JsonValueKind.Object)
+        {
+            SetLimit(capabilities, meta, "totalContextTokens", "contextWindow", "contextWindowTokens");
+            SetLimit(capabilities, meta, "contextWindow", "contextWindow", "contextWindowTokens");
+            SetLimit(capabilities, meta, "maxCompletionTokens", "outputTokenLimit", "maxTokens");
+            SetLimit(capabilities, meta, "maxOutputTokens", "outputTokenLimit", "maxTokens");
+            SetLimit(capabilities, meta, "inputTokenLimit", "inputTokenLimit", "maxInputTokens");
+            SetLimit(capabilities, meta, "maxInputTokens", "inputTokenLimit", "maxInputTokens");
+            SetFlag(capabilities, meta, "supportsToolCall", "supportsToolCall", "toolCall", "tool_call");
+            SetFlag(capabilities, meta, "supportsImageInput", "acceptsImages", "supportsImageInput", "supportsImages");
+            if (!capabilities.ContainsKey("inputModalities") &&
+                meta.TryGetProperty("inputModalities", out var modalities) &&
+                modalities.ValueKind == JsonValueKind.Array)
+            {
+                var values = new List<string>();
+                foreach (var modality in modalities.EnumerateArray())
+                {
+                    if (modality.ValueKind == JsonValueKind.String && modality.GetString() is { Length: > 0 } text)
+                    {
+                        values.Add(text);
+                    }
+                }
+
+                if (values.Count > 0)
+                {
+                    capabilities["inputModalities"] = values;
+                }
+            }
+        }
+
+        return capabilities.Count == 0 ? null : capabilities;
+    }
+
+    private static void SetLimit(Dictionary<string, object?> capabilities, JsonElement meta, string source, params string[] targets)
+    {
+        if (!meta.TryGetProperty(source, out var property) ||
+            property.ValueKind != JsonValueKind.Number ||
+            !property.TryGetInt64(out var value) ||
+            value <= 0)
+        {
+            return;
+        }
+
+        foreach (var target in targets)
+        {
+            capabilities.TryAdd(target, value);
+        }
+    }
+
+    private static void SetFlag(Dictionary<string, object?> capabilities, JsonElement meta, string target, params string[] sources)
+    {
+        if (capabilities.ContainsKey(target))
+        {
+            return;
+        }
+
+        foreach (var source in sources)
+        {
+            if (!meta.TryGetProperty(source, out var property))
+            {
+                continue;
+            }
+
+            if (property.ValueKind is JsonValueKind.True or JsonValueKind.False)
+            {
+                capabilities[target] = property.GetBoolean();
+                return;
+            }
+        }
+    }
 
     private static IReadOnlyList<AgentReasoningEffort>? ReadEfforts(JsonElement model, out AgentReasoningEffort? defaultEffort)
     {
