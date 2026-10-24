@@ -219,9 +219,9 @@ public static class ConfiguredModelProviderRegistryBuilder
             case ClaudeCodeModelProviderRuntime.ProviderType:
                 return TryCreateClaudeCodeProvider(definition, stateRootPath, modelCatalog, out descriptor, out createRuntime);
             case CursorModelProviderRuntime.ProviderType:
-                return TryCreateCursorProvider(definition, stateRootPath, out descriptor, out createRuntime);
+                return TryCreateCursorProvider(definition, stateRootPath, modelCatalog, out descriptor, out createRuntime);
             case GrokModelProviderRuntime.ProviderType:
-                return TryCreateGrokProvider(definition, stateRootPath, out descriptor, out createRuntime);
+                return TryCreateGrokProvider(definition, stateRootPath, modelCatalog, out descriptor, out createRuntime);
             default:
                 descriptor = null!;
                 createRuntime = null!;
@@ -709,6 +709,7 @@ public static class ConfiguredModelProviderRegistryBuilder
     private static bool TryCreateCursorProvider(
         CodeAltaProviderDocument definition,
         string stateRootPath,
+        ModelsDevCatalogService? modelCatalog,
         out ModelProviderDescriptor descriptor,
         out Func<IModelProviderRuntime> createRuntime)
     {
@@ -722,6 +723,7 @@ public static class ConfiguredModelProviderRegistryBuilder
             DefaultModelId = NormalizeText(definition.Model),
             IsDefault = true,
             IsEnabled = definition.Enabled != false,
+            ModelCatalog = modelCatalog,
         };
 
         descriptor = CursorModelProviderRuntime.CreateDescriptor(options);
@@ -735,6 +737,7 @@ public static class ConfiguredModelProviderRegistryBuilder
     private static bool TryCreateGrokProvider(
         CodeAltaProviderDocument definition,
         string stateRootPath,
+        ModelsDevCatalogService? modelCatalog,
         out ModelProviderDescriptor descriptor,
         out Func<IModelProviderRuntime> createRuntime)
     {
@@ -748,6 +751,7 @@ public static class ConfiguredModelProviderRegistryBuilder
             DefaultModelId = NormalizeText(definition.Model),
             IsDefault = true,
             IsEnabled = definition.Enabled != false,
+            ModelCatalog = modelCatalog,
         };
 
         descriptor = GrokModelProviderRuntime.CreateDescriptor(options);

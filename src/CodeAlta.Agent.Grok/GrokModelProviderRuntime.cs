@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
 using CodeAlta.Agent;
+using CodeAlta.Agent.ModelCatalog;
 using CodeAlta.Agent.Runtime;
 
 namespace CodeAlta.Agent.Grok;
@@ -34,6 +35,9 @@ public sealed class GrokModelProviderRuntimeOptions
 
     /// <summary>Gets whether the provider is enabled.</summary>
     public bool IsEnabled { get; init; } = true;
+
+    /// <summary>Gets the models.dev catalog that describes limits and abilities the CLI left out.</summary>
+    public ModelsDevCatalogService? ModelCatalog { get; init; }
 }
 
 /// <summary>
@@ -213,11 +217,12 @@ public sealed class GrokModelProviderRuntime : IAgentModelProviderRuntime
 
     private sealed class GrokModelCatalog(GrokModelProviderRuntimeOptions options) : IModelProviderModelCatalog
     {
-        public Task<IReadOnlyList<AgentModelInfo>> ListModelsAsync(ModelProviderRuntimeDescriptor provider, CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<AgentModelInfo>> ListModelsAsync(ModelProviderRuntimeDescriptor provider, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ArgumentNullException.ThrowIfNull(provider);
-            return GrokAgentLogin.ListModelsAsync(GrokCliLaunch.From(options.Command, options.Arguments, null), cancellationToken);
+            var models = await GrokAgentLogin.ListModelsAsync(GrokCliLaunch.From(options.Command, options.Arguments, null), cancellationToken).ConfigureAwait(false);
+            return SubscriptionModelCapabilities.Describe(models, options.ModelCatalog);
         }
     }
 

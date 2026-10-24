@@ -76,6 +76,57 @@ public sealed class GrokProviderTests
     }
 
     [TestMethod]
+    public void ParseAgentCatalog_KeepsTheWindowToolsAndImageInputTheCliReports()
+    {
+        using var document = JsonDocument.Parse(
+            """
+            {
+              "result": {
+                "_meta": {
+                  "modelState": {
+                    "availableModels": [
+                      {
+                        "modelId": "grok-4.7",
+                        "name": "Grok 4.7",
+                        "_meta": {
+                          "totalContextTokens": 500000,
+                          "maxCompletionTokens": 128000,
+                          "supportsReasoningEffort": true,
+                          "reasoningEfforts": ["low", "high"],
+                          "acceptsImages": true,
+                          "toolCall": true,
+                          "inputModalities": ["text", "image"]
+                        }
+                      },
+                      {
+                        "modelId": "grok-code",
+                        "name": "Grok Code",
+                        "_meta": { "supportsReasoningEffort": false, "acceptsImages": false, "toolCall": false }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+            """);
+
+        var models = GrokAgentLogin.ParseAgentCatalog(document.RootElement);
+
+        var grok = models.Single(model => model.Id == "grok-4.7");
+        Assert.AreEqual(500_000L, grok.Capabilities!["contextWindow"]);
+        Assert.AreEqual(500_000L, grok.Capabilities["contextWindowTokens"]);
+        Assert.AreEqual(128_000L, grok.Capabilities["outputTokenLimit"]);
+        Assert.AreEqual(true, grok.Capabilities["supportsToolCall"]);
+        Assert.AreEqual(true, grok.Capabilities["supportsImageInput"]);
+        Assert.AreEqual(true, AgentImageInputCapability.Read(grok));
+
+        var code = models.Single(model => model.Id == "grok-code");
+        Assert.AreEqual(false, code.Capabilities!["supportsToolCall"]);
+        Assert.AreEqual(false, code.Capabilities["supportsImageInput"]);
+        Assert.IsFalse(code.Capabilities.ContainsKey("contextWindow"));
+    }
+
+    [TestMethod]
     public void ParseModels_KeepsThePrintedIdAndOffersEffort()
     {
         var models = GrokAgentLogin.ParseModels("""
